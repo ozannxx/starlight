@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import AmbientBackground from "@/components/AmbientBackground";
+import AppShell from "@/components/AppShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Project Starlight",
-  description:
-    "Ultra-Glassmorphism + Neumorphism — thème clair chaud (iOS 26 / macOS Tahoe).",
+  description: "Project Starlight — espace élève : tableau de bord, agenda, devoirs.",
 };
 
 export default function RootLayout({
@@ -14,11 +14,10 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body>
-        {/* 1. Fond ambiant : toujours en PREMIER enfant du <body> */}
         <AmbientBackground />
-
-        {/* 2. Tout le contenu au-dessus du fond */}
-        <div className="relative z-10">{children}</div>
+        <div className="relative z-10">
+          <AppShell>{children}</AppShell>
+        </div>
       </body>
     </html>
   );
