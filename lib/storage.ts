@@ -7,7 +7,7 @@ import {
   Dumbbell, FlaskConical, Landmark, Languages, Layers, Mic, NotebookPen, Palmtree, Users,
 } from "lucide-react";
 
-/* ============ Clés ============ */
+/* ============ Clés de stockage ============ */
 export const AGENDA_KEY = "starlight-agenda-events-v2";
 export const TASKS_KEY = "starlight-tasks";
 export const FOCUS_SETTINGS_KEY = "starlight-focus-settings";
@@ -19,12 +19,32 @@ export const HABITS_KEY = "starlight-habits";
 export const APPS_KEY = "starlight-applications";
 export const CV_KEY = "starlight-cv";
 export const WIDGETS_KEY = "starlight-widgets";
-export const ALL_KEYS = [AGENDA_KEY, TASKS_KEY, FOCUS_SETTINGS_KEY, FOCUS_SESSIONS_KEY, SCHEDULE_KEY, DOCS_KEY, GOALS_KEY, HABITS_KEY, APPS_KEY, CV_KEY, WIDGETS_KEY];
+export const TEMPLATES_KEY = "starlight-templates";
+export const JOURNAL_KEY = "starlight-journal";
+export const MOOD_KEY = "starlight-mood";
+export const VACATION_KEY = "starlight-vacation";
+export const CLOUD_KEY = "starlight-cloud";
+export const FLASHCARDS_KEY = "starlight-flashcards";
+export const REVISIONS_KEY = "starlight-revisions";
 
-/* ============ Dates ============ */
+/* Clés synchronisées par le cloud (cf. lib/cloud.ts) — volontairement sans la config cloud elle-même */
+export const CLOUD_SYNCED_KEYS = [
+  AGENDA_KEY, TASKS_KEY, FOCUS_SETTINGS_KEY, FOCUS_SESSIONS_KEY, SCHEDULE_KEY,
+  DOCS_KEY, GOALS_KEY, HABITS_KEY, APPS_KEY, CV_KEY, WIDGETS_KEY, TEMPLATES_KEY,
+  JOURNAL_KEY, MOOD_KEY, FLASHCARDS_KEY, REVISIONS_KEY,
+];
+
+/* Toutes les données (export / import / réinitialisation dans Paramètres) */
+export const ALL_KEYS = [...CLOUD_SYNCED_KEYS];
+
+/* ============ Helpers dates ============ */
 export const pad = (n: number) => String(n).padStart(2, "0");
 export const isoDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-export const addDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return isoDate(d); };
+export const addDays = (n: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return isoDate(d);
+};
 export const todayISO = () => isoDate(new Date());
 export const ts = (iso: string, time: string) => new Date(`${iso}T${time || "12:00"}:00`).getTime();
 export const daysBetween = (iso1: string, iso2: string) =>
@@ -33,10 +53,16 @@ export const formatLong = (iso: string) => {
   const s = new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
-export const minutesOf = (t: string) => { const [h, m] = (t || "0:0").split(":").map(Number); return h * 60 + (m || 0); };
+export const minutesOf = (t: string) => {
+  const [h, m] = (t || "0:0").split(":").map(Number);
+  return h * 60 + (m || 0);
+};
 
 /* ============ Types ============ */
-export type EventType = "devoir" | "controle" | "oral" | "projet" | "vacances" | "sortie" | "apporter" | "anniversaire" | "sport" | "reunion" | "rdv";
+export type EventType =
+  | "devoir" | "controle" | "oral" | "projet" | "vacances" | "sortie"
+  | "apporter" | "anniversaire" | "sport" | "reunion" | "rdv";
+
 export type AgendaEvent = { id: string; title: string; type: EventType; date: string; time: string; subject?: string };
 export type Task = { id: string; title: string; subject?: string; due?: string; column: "todo" | "doing" | "done"; subtasks: { id: string; text: string; done: boolean }[] };
 export type FocusSettings = { focusMin: number; shortBreakMin: number; longBreakMin: number; cyclesBeforeLong: number };
@@ -54,35 +80,52 @@ export type CVData = {
   projects: { id: string; title: string; desc: string }[];
 };
 
-/* ============ Méta événements (identique à /agenda) ============ */
+/* Types v4 */
+export type Template = { id: string; label: string; type: EventType; subject?: string; time: string };
+export type JournalEntry = { date: string; text: string };
+export type MoodMap = Record<string, number>;
+export type Vacation = { active: boolean; until?: string };
+export type Flashcard = { id: string; deck: string; front: string; frontImage?: string; back: string; interval: number; due: string };
+export type RevisionPlan = Record<string, { eventId: string; title: string; examDate: string; sessions: { id: string; date: string; label: string; done: boolean }[] }>;
+
+/* ============ Méta des types d'événements ============ */
 export const TYPE_META: Record<EventType, { label: string; short: string; icon: LucideIcon; pill: string; dot: string; allDay?: boolean }> = {
-  devoir: { label: "Devoir", short: "Devoir", icon: NotebookPen, pill: "bg-sky-500/10 text-sky-600", dot: "bg-sky-500" },
-  controle: { label: "Contrôle", short: "Contrôle", icon: ClipboardCheck, pill: "bg-rose-500/10 text-rose-600", dot: "bg-rose-500" },
-  oral: { label: "Oral / Exposé", short: "Oral", icon: Mic, pill: "bg-amber-500/10 text-amber-600", dot: "bg-amber-500" },
-  projet: { label: "Projet à rendre", short: "Projet", icon: Layers, pill: "bg-indigo-500/10 text-indigo-600", dot: "bg-indigo-500" },
-  vacances: { label: "Vacances / Pont", short: "Vacances", icon: Palmtree, pill: "bg-teal-500/10 text-teal-600", dot: "bg-teal-500", allDay: true },
-  sortie: { label: "Sortie scolaire", short: "Sortie", icon: Bus, pill: "bg-orange-500/10 text-orange-600", dot: "bg-orange-500", allDay: true },
-  apporter: { label: "À apporter", short: "À apporter", icon: Backpack, pill: "bg-cyan-500/10 text-cyan-600", dot: "bg-cyan-500", allDay: true },
-  anniversaire: { label: "Anniversaire", short: "Anniv.", icon: Cake, pill: "bg-pink-500/10 text-pink-600", dot: "bg-pink-500", allDay: true },
-  sport: { label: "Sport / Activité", short: "Sport", icon: Dumbbell, pill: "bg-blue-500/10 text-blue-600", dot: "bg-blue-500" },
-  reunion: { label: "Réunion parents-profs", short: "Parents-profs", icon: Users, pill: "bg-purple-500/10 text-purple-600", dot: "bg-purple-500" },
-  rdv: { label: "Rendez-vous perso", short: "Rdv perso", icon: CalendarClock, pill: "bg-violet-500/10 text-violet-600", dot: "bg-violet-500" },
+  devoir:       { label: "Devoir",                short: "Devoir",        icon: NotebookPen,    pill: "bg-sky-500/10 text-sky-600",      dot: "bg-sky-500" },
+  controle:     { label: "Contrôle",              short: "Contrôle",      icon: ClipboardCheck, pill: "bg-rose-500/10 text-rose-600",    dot: "bg-rose-500" },
+  oral:         { label: "Oral / Exposé",         short: "Oral",          icon: Mic,            pill: "bg-amber-500/10 text-amber-600",  dot: "bg-amber-500" },
+  projet:       { label: "Projet à rendre",       short: "Projet",        icon: Layers,         pill: "bg-indigo-500/10 text-indigo-600",dot: "bg-indigo-500" },
+  vacances:     { label: "Vacances / Pont",       short: "Vacances",      icon: Palmtree,       pill: "bg-teal-500/10 text-teal-600",    dot: "bg-teal-500", allDay: true },
+  sortie:       { label: "Sortie scolaire",       short: "Sortie",        icon: Bus,            pill: "bg-orange-500/10 text-orange-600",dot: "bg-orange-500", allDay: true },
+  apporter:     { label: "À apporter",            short: "À apporter",    icon: Backpack,       pill: "bg-cyan-500/10 text-cyan-600",    dot: "bg-cyan-500", allDay: true },
+  anniversaire: { label: "Anniversaire",          short: "Anniv.",        icon: Cake,           pill: "bg-pink-500/10 text-pink-600",    dot: "bg-pink-500", allDay: true },
+  sport:        { label: "Sport / Activité",      short: "Sport",         icon: Dumbbell,       pill: "bg-blue-500/10 text-blue-600",    dot: "bg-blue-500" },
+  reunion:      { label: "Réunion parents-profs", short: "Parents-profs", icon: Users,          pill: "bg-purple-500/10 text-purple-600",dot: "bg-purple-500" },
+  rdv:          { label: "Rendez-vous perso",     short: "Rdv perso",     icon: CalendarClock,  pill: "bg-violet-500/10 text-violet-600",dot: "bg-violet-500" },
 };
 export const eventMeta = (ev: AgendaEvent) => TYPE_META[ev.type] ?? TYPE_META.rdv;
 export const eventTarget = (ev: AgendaEvent) => ts(ev.date, eventMeta(ev).allDay ? "08:00" : ev.time);
 
+/* ============ Statuts candidatures ============ */
 export const APP_STATUSES: { id: AppStatus; label: string; pill: string; bar: string }[] = [
-  { id: "idee", label: "Idée", pill: "bg-black/10 text-subtle", bar: "bg-black/20" },
-  { id: "prep", label: "En préparation", pill: "bg-amber-500/10 text-amber-600", bar: "bg-amber-500" },
-  { id: "envoye", label: "Envoyé", pill: "bg-sky-500/10 text-sky-600", bar: "bg-sky-500" },
-  { id: "attente", label: "En attente", pill: "bg-violet-500/10 text-violet-600", bar: "bg-violet-500" },
-  { id: "admis", label: "Admis 🎉", pill: "bg-emerald-500/10 text-emerald-600", bar: "bg-emerald-500" },
-  { id: "refuse", label: "Refusé", pill: "bg-rose-500/10 text-rose-600", bar: "bg-rose-500" },
+  { id: "idee",   label: "Idée",          pill: "bg-black/10 text-subtle",       bar: "bg-black/20" },
+  { id: "prep",   label: "En préparation", pill: "bg-amber-500/10 text-amber-600", bar: "bg-amber-500" },
+  { id: "envoye", label: "Envoyé",        pill: "bg-sky-500/10 text-sky-600",    bar: "bg-sky-500" },
+  { id: "attente", label: "En attente",   pill: "bg-violet-500/10 text-violet-600", bar: "bg-violet-500" },
+  { id: "admis",  label: "Admis 🎉",      pill: "bg-emerald-500/10 text-emerald-600", bar: "bg-emerald-500" },
+  { id: "refuse", label: "Refusé",        pill: "bg-rose-500/10 text-rose-600",  bar: "bg-rose-500" },
 ];
 
+/* ============ Icônes par matière ============ */
 export const SUBJECT_ICONS: Record<string, LucideIcon> = {
-  Mathématiques: Calculator, "Physique-Chimie": FlaskConical, Anglais: Languages, Espagnol: Languages,
-  "Histoire-Géographie": Landmark, Histoire: Landmark, SVT: BookOpen, Sport: Dumbbell, Français: BookOpen,
+  Mathématiques: Calculator,
+  "Physique-Chimie": FlaskConical,
+  Anglais: Languages,
+  Espagnol: Languages,
+  "Histoire-Géographie": Landmark,
+  Histoire: Landmark,
+  SVT: BookOpen,
+  Sport: Dumbbell,
+  Français: BookOpen,
 };
 export const subjectIcon = (s?: string): LucideIcon => (s && SUBJECT_ICONS[s]) || BookOpen;
 
@@ -91,7 +134,10 @@ export function useLocalState<T>(key: string, initial: T) {
   const [state, setState] = useState<T>(initial);
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    try { const raw = localStorage.getItem(key); if (raw !== null) setState(JSON.parse(raw) as T); } catch {}
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw !== null) setState(JSON.parse(raw) as T);
+    } catch {}
     setReady(true);
   }, [key]);
   useEffect(() => {
@@ -102,21 +148,24 @@ export function useLocalState<T>(key: string, initial: T) {
 }
 
 export function readJSON<T>(key: string, fallback: T): T {
-  try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : fallback; } catch { return fallback; }
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch { return fallback; }
 }
 
-/* ============ Seeds ============ */
+/* ============ Seeds (données de démo) ============ */
 export const SEED_AGENDA: AgendaEvent[] = [
-  { id: "seed-1", title: "DM de Maths — dérivées", type: "devoir", date: addDays(1), time: "08:00", subject: "Mathématiques" },
-  { id: "seed-2", title: "Apporter la blouse de chimie", type: "apporter", date: addDays(1), time: "08:00" },
-  { id: "seed-3", title: "Entraînement foot", type: "sport", date: addDays(2), time: "17:30" },
-  { id: "seed-4", title: "Contrôle Physique — circuits", type: "controle", date: addDays(3), time: "10:00", subject: "Physique-Chimie" },
-  { id: "seed-5", title: "Anniversaire de Lucas 🎂", type: "anniversaire", date: addDays(6), time: "08:00" },
-  { id: "seed-6", title: "Oral d'Espagnol", type: "oral", date: addDays(9), time: "14:00", subject: "Espagnol" },
-  { id: "seed-7", title: "Sortie au musée d'Orsay", type: "sortie", date: addDays(12), time: "08:00" },
-  { id: "seed-8", title: "Réunion parents-professeurs", type: "reunion", date: addDays(15), time: "18:00" },
-  { id: "seed-9", title: "TPE — rendre le dossier final", type: "projet", date: addDays(18), time: "23:59", subject: "TPE" },
-  { id: "seed-10", title: "🏆 Vacances de printemps", type: "vacances", date: addDays(20), time: "08:00" },
+  { id: "seed-1",  title: "DM de Maths — dérivées",        type: "devoir",       date: addDays(1),  time: "08:00", subject: "Mathématiques" },
+  { id: "seed-2",  title: "Apporter la blouse de chimie",  type: "apporter",     date: addDays(1),  time: "08:00" },
+  { id: "seed-3",  title: "Entraînement foot",             type: "sport",        date: addDays(2),  time: "17:30" },
+  { id: "seed-4",  title: "Contrôle Physique — circuits",  type: "controle",     date: addDays(3),  time: "10:00", subject: "Physique-Chimie" },
+  { id: "seed-5",  title: "Anniversaire de Lucas 🎂",      type: "anniversaire", date: addDays(6),  time: "08:00" },
+  { id: "seed-6",  title: "Oral d'Espagnol",               type: "oral",         date: addDays(9),  time: "14:00", subject: "Espagnol" },
+  { id: "seed-7",  title: "Sortie au musée d'Orsay",       type: "sortie",       date: addDays(12), time: "08:00" },
+  { id: "seed-8",  title: "Réunion parents-professeurs",   type: "reunion",      date: addDays(15), time: "18:00" },
+  { id: "seed-9",  title: "TPE — rendre le dossier final", type: "projet",       date: addDays(18), time: "23:59", subject: "TPE" },
+  { id: "seed-10", title: "🏆 Vacances de printemps",      type: "vacances",     date: addDays(20), time: "08:00" },
 ];
 
 export const SEED_TASKS: Task[] = [
@@ -129,8 +178,8 @@ export const SEED_TASKS: Task[] = [
 export const DEFAULT_FOCUS: FocusSettings = { focusMin: 25, shortBreakMin: 5, longBreakMin: 15, cyclesBeforeLong: 4 };
 
 export const SEED_FOCUS: FocusSession[] = [
-  { id: "f1", startedAt: ts(addDays(0), "16:10"), minutes: 25, subject: "Mathématiques" },
-  { id: "f2", startedAt: ts(addDays(0), "17:00"), minutes: 25, subject: "Mathématiques" },
+  { id: "f1", startedAt: ts(addDays(0), "16:10"),  minutes: 25, subject: "Mathématiques" },
+  { id: "f2", startedAt: ts(addDays(0), "17:00"),  minutes: 25, subject: "Mathématiques" },
   { id: "f3", startedAt: ts(addDays(-1), "10:00"), minutes: 50, subject: "Physique-Chimie" },
   { id: "f4", startedAt: ts(addDays(-1), "15:30"), minutes: 25, subject: "Anglais" },
   { id: "f5", startedAt: ts(addDays(-2), "09:00"), minutes: 25, subject: "Histoire-Géo" },
@@ -188,4 +237,6 @@ export const SEED_CV: CVData = {
 };
 
 export const SEED_WIDGETS = { kpis: true, card: true, grades: true, homework: true, courses: true, focus: true, nextUp: true };
+
+/* Notes placeholder (dashboard + stats) */
 export const GRADES = [14, 16, 12, 17, 15, 18, 13, 15.5, 16, 11, 17, 15, 18, 14];

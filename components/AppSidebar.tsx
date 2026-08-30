@@ -5,13 +5,14 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard, CalendarDays, NotebookPen, Timer, CalendarRange, Target, BarChart3,
-  FolderOpen, Send, FileText, Settings, GraduationCap, Brain, MessagesSquare, Users, X, Sparkles,
+  FolderOpen, Send, FileText, Settings, GraduationCap, Brain, MessagesSquare, Users, X, Sparkles, Sun,
 } from "lucide-react";
 
 type NavItem = { id: string; label: string; icon: LucideIcon; href?: string; soon?: boolean };
 
 export const NAV_ITEMS: NavItem[] = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, href: "/" },
+  { id: "today", label: "Aujourd'hui", icon: Sun, href: "/today" },
   { id: "agenda", label: "Agenda", icon: CalendarDays, href: "/agenda" },
   { id: "tasks", label: "Devoirs", icon: NotebookPen, href: "/tasks" },
   { id: "focus", label: "Focus", icon: Timer, href: "/focus" },
@@ -19,7 +20,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "goals", label: "Objectifs & Habitudes", icon: Target, href: "/goals" },
   { id: "stats", label: "Statistiques", icon: BarChart3, href: "/stats" },
   { id: "grades", label: "Notes", icon: GraduationCap, soon: true },
-  { id: "revision", label: "Révisions", icon: Brain, soon: true },
+  { id: "revision", label: "Révisions", icon: Brain, href: "/revision" },
   { id: "documents", label: "Documents", icon: FolderOpen, href: "/documents" },
   { id: "contacts", label: "Contacts", icon: Users, soon: true },
   { id: "applications", label: "Candidatures", icon: Send, href: "/applications" },
@@ -29,7 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 const GROUPS = [
-  { title: "Pilotage", ids: ["dashboard", "agenda", "tasks", "focus", "schedule"] },
+  { title: "Pilotage", ids: ["dashboard", "today", "agenda", "tasks", "focus", "schedule"] },
   { title: "Progression", ids: ["goals", "stats", "grades", "revision"] },
   { title: "Vie scolaire", ids: ["documents", "contacts"] },
   { title: "Avenir", ids: ["applications", "cv"] },

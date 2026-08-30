@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { CalendarPlus, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
-import {
-  TASKS_KEY, AGENDA_KEY, SEED_TASKS, useLocalState, todayISO, daysBetween, type Task,
-} from "@/lib/storage";
+import { useToast } from "@/components/Toast";
+import { TASKS_KEY, AGENDA_KEY, SEED_TASKS, useLocalState, todayISO, daysBetween, type Task } from "@/lib/storage";
 
 const COLUMNS = [
   { id: "todo", label: "À faire", pill: "bg-sky-500/10 text-sky-600" },
@@ -12,18 +11,38 @@ const COLUMNS = [
   { id: "done", label: "Fait", pill: "bg-emerald-500/10 text-emerald-600" },
 ] as const;
 
+function formatDue(due: string, today: string) {
+  const d = daysBetween(due, today);
+  if (d < 0) return "en retard";
+  if (d === 0) return "aujourd'hui";
+  if (d === 1) return "demain";
+  return `dans ${d} j`;
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useLocalState(TASKS_KEY, SEED_TASKS);
+  const { toast } = useToast();
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [form, setForm] = useState({ title: "", subject: "", due: "" });
+  const [form, setForm] = useState({ title: "", subject: "", due: "", weekly: false, until: "" });
   const [subInput, setSubInput] = useState("");
   const today = todayISO();
 
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim()) return;
-    setTasks((p) => [...p, { id: crypto.randomUUID(), title: form.title.trim(), subject: form.subject.trim() || undefined, due: form.due || undefined, column: "todo", subtasks: [] }]);
-    setForm({ title: "", subject: "", due: "" });
+    const mk = (due?: string) => ({ id: crypto.randomUUID(), title: form.title.trim(), subject: form.subject.trim() || undefined, due, column: "todo" as const, subtasks: [] });
+    const list = [mk(form.due || undefined)];
+    if (form.weekly && form.due && form.until && form.due < form.until) {
+      let d = new Date(`${form.due}T12:00:00`);
+      const end = new Date(`${form.until}T12:00:00`);
+      while (d < end && list.length < 26) {
+        d = new Date(d.getTime() + 7 * 864e5);
+        if (d <= end) list.push(mk(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`));
+      }
+    }
+    setTasks((p) => [...p, ...list]);
+    if (list.length > 1) toast(`${list.length} devoirs créés (récurrence hebdo)`);
+    setForm({ title: "", subject: "", due: "", weekly: false, until: "" });
   };
 
   const move = (t: Task, dir: 1 | -1) => {
@@ -47,6 +66,11 @@ export default function TasksPage() {
           <input className="field sm:col-span-2" placeholder="Titre du devoir" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <input className="field" placeholder="Matière" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
           <input className="field" type="date" value={form.due} onChange={(e) => setForm({ ...form, due: e.target.value })} />
+          <label className="glass-inset flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-xs font-medium text-text sm:col-span-2">
+            <span>↻ Répéter chaque semaine</span>
+            <input type="checkbox" checked={form.weekly} onChange={(e) => setForm({ ...form, weekly: e.target.checked })} className="h-4 w-4 accent-[var(--accent)]" />
+          </label>
+          {form.weekly && <input className="field" type="date" title="Jusqu'au" value={form.until} onChange={(e) => setForm({ ...form, until: e.target.value })} />}
           <button type="submit" className="btn-primary sm:col-span-4"><Plus size={16} /> Ajouter</button>
         </form>
       </section>
@@ -80,7 +104,8 @@ export default function TasksPage() {
                         <div className="flex shrink-0 items-center gap-1">
                           <button onClick={() => move(t, -1)} disabled={t.column === "todo"} aria-label="Reculer" className="rounded-lg px-1.5 py-0.5 text-subtle transition-colors hover:text-text disabled:opacity-20">‹</button>
                           <button onClick={() => move(t, 1)} disabled={t.column === "done"} aria-label="Avancer" className="rounded-lg px-1.5 py-0.5 text-subtle transition-colors hover:text-text disabled:opacity-20">›</button>
-                          <button onClick={() => setTasks((p) => p.filter((x) => x.id !== t.id))} aria-label="Supprimer" className="rounded-lg p-1 text-subtle transition-colors hover:bg-rose-500/10 hover:text-rose-600"><Trash2 size={13} /></button>
+                          <button onClick={() => { const removed = t; setTasks((p) => p.filter((x) => x.id !== t.id)); toast(`« ${t.title} » supprimé`, () => setTasks((p) => [...p, removed])); }}
+                            aria-label="Supprimer" className="rounded-lg p-1 text-subtle transition-colors hover:bg-rose-500/10 hover:text-rose-600"><Trash2 size={13} /></button>
                         </div>
                       </div>
 
@@ -126,12 +151,4 @@ export default function TasksPage() {
       </section>
     </>
   );
-}
-
-function formatDue(due: string, today: string) {
-  const d = daysBetween(due, today);
-  if (d < 0) return "en retard";
-  if (d === 0) return "aujourd'hui";
-  if (d === 1) return "demain";
-  return `dans ${d} j`;
 }

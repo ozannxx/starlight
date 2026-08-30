@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Flame, Plus, Target, Trash2 } from "lucide-react";
+import { useToast } from "@/components/Toast";
 import { GOALS_KEY, HABITS_KEY, SEED_GOALS, SEED_HABITS, useLocalState, todayISO, addDays, daysBetween, type Goal } from "@/lib/storage";
 
 export default function GoalsPage() {
   const [goals, setGoals] = useLocalState<Goal[]>(GOALS_KEY, SEED_GOALS);
   const [habits, setHabits] = useLocalState(HABITS_KEY, SEED_HABITS);
+  const { toast } = useToast();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [goalTitle, setGoalTitle] = useState("");
   const [goalDeadline, setGoalDeadline] = useState("");
@@ -63,7 +65,8 @@ export default function GoalsPage() {
                   <div className="flex shrink-0 items-center gap-1">
                     <button onClick={() => setGoals((p) => p.map((x) => x.id === g.id ? { ...x, done: !x.done } : x))}
                       aria-label="Terminer" className={`flex h-7 w-7 items-center justify-center rounded-lg border-2 text-xs transition-all ${g.done ? "border-accent bg-accent text-white" : "border-subtle/40 hover:border-accent"}`}>✓</button>
-                    <button onClick={() => setGoals((p) => p.filter((x) => x.id !== g.id))} aria-label="Supprimer" className="rounded-lg p-1.5 text-subtle transition-colors hover:bg-rose-500/10 hover:text-rose-600"><Trash2 size={14} /></button>
+                    <button onClick={() => { const removed = g; setGoals((p) => p.filter((x) => x.id !== g.id)); toast(`« ${g.title} » supprimé`, () => setGoals((p) => [...p, removed])); }}
+                      aria-label="Supprimer" className="rounded-lg p-1.5 text-subtle transition-colors hover:bg-rose-500/10 hover:text-rose-600"><Trash2 size={14} /></button>
                   </div>
                 </div>
 
@@ -131,7 +134,8 @@ export default function GoalsPage() {
                     <p className="text-sm font-semibold text-text">{h.title}</p>
                     {streak > 0 && <span className="rounded-full bg-orange-500/10 px-2.5 py-0.5 text-xs font-bold text-orange-600">🔥 {streak} j</span>}
                   </div>
-                  <button onClick={() => setHabits((p) => p.filter((x) => x.id !== h.id))} aria-label="Supprimer" className="rounded-lg p-1.5 text-subtle transition-colors hover:bg-rose-500/10 hover:text-rose-600"><Trash2 size={14} /></button>
+                  <button onClick={() => { const removed = h; setHabits((p) => p.filter((x) => x.id !== h.id)); toast(`« ${h.title} » supprimée`, () => setHabits((p) => [...p, removed])); }}
+                    aria-label="Supprimer" className="rounded-lg p-1.5 text-subtle transition-colors hover:bg-rose-500/10 hover:text-rose-600"><Trash2 size={14} /></button>
                 </div>
                 <div className="mt-4 flex justify-between gap-1.5">
                   {last7.map((d) => {

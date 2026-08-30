@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -12,7 +11,7 @@
   --color-accent: var(--accent);
   --color-soft: var(--soft);
   --color-softest: var(--softest);
-  --font-sans: "Inter", "SF Pro Display", system-ui, sans-serif;
+  --font-sans: var(--font-inter, "Inter"), "SF Pro Display", system-ui, sans-serif;
 }
 
 /* ============ THÈMES ============ */
@@ -58,7 +57,6 @@
   --glass-hover-shadow:16px 16px 50px rgba(0,0,0,.55),-16px -16px 50px rgba(255,255,255,.04),inset 0 1px 2px rgba(255,255,255,.14);
   --orb1:#3E5CFF; --orb2:#B44CFF; --orb3:#2BB3FF; --orb4:#FF5C8A; --orb5:#20E3B2; --orb6:#FFC94D; --orb7:#7C5CFF;
 }
-/* Les thèmes clairs héritent des surfaces/ombres du thème par défaut */
 [data-theme="marine"], [data-theme="yuki"], [data-theme="sakura"], [data-theme="matcha"] {
   --surface:rgba(255,255,255,.55); --surface-hover:rgba(255,255,255,.65);
   --border:rgba(255,255,255,.8); --soft:rgba(255,255,255,.55); --softest:rgba(255,255,255,.32);
@@ -69,41 +67,41 @@
 html, body {
   background: var(--bg); color: var(--text); font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased; overscroll-behavior: none;
-  transition: background .4s ease, color .4s ease;
 }
 
-/* ============ GLASS ============ */
+/* ============ GLASS (blur optimisé 28px — imperceptible sur verre) ============ */
 .glass {
   background: var(--surface);
-  backdrop-filter: blur(40px) saturate(200%);
-  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
   border: 1.5px solid var(--border);
   box-shadow: var(--glass-shadow);
 }
 .glass-inset {
   background: var(--softest);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
   border: 1px solid var(--border);
   box-shadow: var(--glass-inset-shadow);
 }
-.glass-hover { transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1); }
-.glass-hover:hover {
-  transform: translateY(-4px) scale(1.01);
-  background: var(--surface-hover);
-  box-shadow: var(--glass-hover-shadow);
-}
-.glass-panel {
+.glass-panel { /* drawer & modales : on garde le 40px premium */
   background: var(--panel-bg);
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
 }
 
-/* ============ UTILITAIRES RÉUTILISABLES ============ */
+/* ============ AUBE : transitions douces au changement de thème ============ */
+html, body { transition: background-color .6s ease, color .6s ease; }
+.glass, .glass-inset, .glass-panel, .field, .btn-ghost, .btn-primary, .icon-chip {
+  transition: background-color .6s ease, border-color .6s ease, box-shadow .6s ease, color .6s ease;
+}
+.glass-hover { transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1); } /* le hover reste vif */
+
+/* ============ UTILITAIRES ============ */
 .field {
   width: 100%; border-radius: .75rem; border: 1px solid var(--field-border);
   background: var(--field-bg); padding: .625rem .875rem; font-size: .875rem;
-  color: var(--text); outline: none; transition: box-shadow .2s;
+  color: var(--text); outline: none;
 }
 .field::placeholder { color: var(--subtle); opacity: .7; }
 .field:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent); }
@@ -119,7 +117,7 @@ html, body {
 .btn-ghost {
   display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
   border-radius: .75rem; padding: .5rem .875rem; font-size: .8125rem; font-weight: 500;
-  color: var(--subtle); cursor: pointer; transition: all .2s;
+  color: var(--subtle); cursor: pointer;
   background: var(--softest); border: 1px solid var(--border);
 }
 .btn-ghost:hover { color: var(--text); background: var(--soft); }
@@ -127,10 +125,49 @@ html, body {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   width: 2.5rem; height: 2.5rem; border-radius: 1rem; color: var(--accent);
   background: var(--softest); border: 1px solid var(--border);
-  backdrop-filter: blur(20px);
 }
 
-/* Shim dark : adapte les fonds blancs statiques pour Midnight */
+/* ============ FEEDBACK TACTILE (scale indépendant, ne casse aucun transform) ============ */
+button:not(:disabled):active, a:active { scale: .97; }
+
+/* ============ APPARITION EN CASCADE + TRANSITION DE PAGE ============ */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+.stagger > * { animation: rise .55s cubic-bezier(.22,1,.36,1) both; will-change: opacity, transform; }
+.stagger > *:nth-child(2) { animation-delay: .06s; }
+.stagger > *:nth-child(3) { animation-delay: .12s; }
+.stagger > *:nth-child(4) { animation-delay: .18s; }
+.stagger > *:nth-child(5) { animation-delay: .24s; }
+.stagger > *:nth-child(6) { animation-delay: .3s; }
+.stagger > *:nth-child(7) { animation-delay: .36s; }
+.stagger > *:nth-child(8) { animation-delay: .42s; }
+
+/* ============ MODE ZEN (pendant le focus) ============ */
+.zen-veil {
+  position: fixed; inset: 0; z-index: 5; pointer-events: none;
+  background: #0a0d14; opacity: 0; transition: opacity 1.6s ease;
+}
+html[data-zen="1"] .zen-veil { opacity: .16; }
+html[data-zen="1"] .ambient > div { animation-play-state: paused; }
+.zen-dim { transition: opacity .8s ease; }
+html[data-zen="1"] .zen-dim { opacity: .25; }
+html[data-zen="1"] .zen-dim:hover { opacity: 1; }
+
+/* ============ ONGLET CACHÉ : tout s'endort (batterie) ============ */
+html.tab-hidden .ambient > div { animation-play-state: paused; }
+
+/* ============ MODE CALME : masque compteurs & badges ============ */
+html[data-calm="1"] .calmable { display: none !important; }
+
+/* ============ RESPIRATION GUIDÉE (4-4-4-4) ============ */
+@keyframes breathe {
+  0% { transform: scale(.6); } 25% { transform: scale(1); }
+  50% { transform: scale(1); } 75% { transform: scale(.6); } 100% { transform: scale(.6); }
+}
+
+/* Shim dark */
 [data-theme="midnight"] :is(.bg-white\/25,.bg-white\/30,.bg-white\/40) { background-color: rgba(255,255,255,.05); }
 [data-theme="midnight"] :is(.bg-white\/50,.bg-white\/60) { background-color: rgba(255,255,255,.09); }
 [data-theme="midnight"] :is(.hover\:bg-white\/30:hover,.hover\:bg-white\/50:hover,.hover\:bg-white\/60:hover) { background-color: rgba(255,255,255,.09); }
@@ -157,19 +194,21 @@ html, body {
   50% { transform: translate(70px,90px) scale(1.3) rotate(20deg); }
 }
 @keyframes orb-pulse { 0%,100% { transform: scale(1); opacity:.55; } 50% { transform: scale(1.25); opacity:.9; } }
-@keyframes hue-cycle { 0%,100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(50deg); } }
 .animate-orb-drift-1 { animation: orb-drift-1 14s ease-in-out infinite; }
 .animate-orb-drift-2 { animation: orb-drift-2 11s ease-in-out infinite; }
 .animate-orb-drift-3 { animation: orb-drift-3 17s ease-in-out infinite; }
 .animate-orb-pulse { animation: orb-pulse 9s ease-in-out infinite; }
-.animate-hue-cycle { animation: hue-cycle 22s ease-in-out infinite; }
+
+/* Toast */
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.animate-toast-in { animation: toast-in .25s ease-out; }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-orb-drift-1,.animate-orb-drift-2,.animate-orb-drift-3,.animate-orb-pulse,.animate-hue-cycle { animation: none; }
+  .animate-orb-drift-1,.animate-orb-drift-2,.animate-orb-drift-3,.animate-orb-pulse { animation: none; }
+  .stagger > * { animation: none; }
   .glass-hover:hover { transform: none; }
 }
 
-/* ============ IMPRESSION (CV) ============ */
 @media print {
   body * { visibility: hidden; }
   .print-area, .print-area * { visibility: visible; }

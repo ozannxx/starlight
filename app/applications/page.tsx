@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarClock, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
-import { APPS_KEY, SEED_APPS, APP_STATUSES, useLocalState, todayISO, daysBetween, type Application, type AppStatus } from "@/lib/storage";
+import { CalendarClock, ChevronDown, ChevronUp, Plus, Trash2, Wand2 } from "lucide-react";
+import { motivationLetter } from "@/lib/intelligence";
+import { APPS_KEY, SEED_APPS, APP_STATUSES, CV_KEY, SEED_CV, readJSON, useLocalState, todayISO, daysBetween, type Application, type AppStatus } from "@/lib/storage";
 
 export default function ApplicationsPage() {
   const [apps, setApps] = useLocalState<Application[]>(APPS_KEY, SEED_APPS);
@@ -99,6 +100,10 @@ export default function ApplicationsPage() {
                             <input className="field !py-1.5 !text-xs" placeholder="Ajouter une pièce…" value={matInputs[a.id] ?? ""} onChange={(e) => setMatInputs({ ...matInputs, [a.id]: e.target.value })} />
                             <button type="submit" className="btn-ghost !px-2.5"><Plus size={12} /></button>
                           </form>
+                          <button onClick={() => {
+                            const cv = readJSON(CV_KEY, SEED_CV);
+                            setApps((p) => p.map((x) => (x.id === a.id ? { ...x, notes: motivationLetter({ school: a.school, program: a.program, cv }) } : x)));
+                          }} className="btn-ghost !w-full !text-xs"><Wand2 size={13} /> ✨ Générer un brouillon de lettre (à personnaliser)</button>
                           <textarea className="field !text-xs" rows={2} placeholder="Notes / lettre de motivation…" value={a.notes ?? ""}
                             onChange={(e) => setApps((p) => p.map((x) => x.id === a.id ? { ...x, notes: e.target.value } : x))} />
                         </div>
