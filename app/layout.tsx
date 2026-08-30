@@ -3,7 +3,7 @@ import AmbientBackground from "@/components/AmbientBackground";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Solar Amber — Design System",
+  title: "Project Starlight",
   description:
     "Ultra-Glassmorphism + Neumorphism — thème clair chaud (iOS 26 / macOS Tahoe).",
 };

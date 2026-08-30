@@ -8,7 +8,7 @@ export default function Home() {
           </span>
 
           <h1 className="mt-5 text-3xl font-semibold tracking-tight text-text">
-            Solar Amber
+            Project Starlight
           </h1>
           <p className="mt-2 leading-relaxed text-subtle">
             Ultra-Glassmorphism + Neumorphism : flou 40px, saturation 200 %,
